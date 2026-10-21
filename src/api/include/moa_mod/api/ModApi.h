@@ -16,7 +16,7 @@
  *   different version, and does not call its other functions.
  * - `MoaModGetInfo` gives the id, the name and the version of the mod.
  * - `MoaModInit` gets the table of the loader. The mod registers its settings, its menu fields, its actions and its
- *   method callbacks. A result of 0 tells that the mod cannot start: the loader then removes all the registrations of
+ *   method callbacks. The loader refuses registrations after `MoaModInit` returns. A result of 0 tells that the mod cannot start: the loader then removes all the registrations of
  *   the mod, unloads the DLL, writes the reason to the log, and the game continues.
  * - `MoaModShutdown` tells the mod that the game quits or that the loader unloads the mod. The mod puts back each
  *   value of the game that it changed. After the call, the loader calls no function of the mod.
