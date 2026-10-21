@@ -21,7 +21,7 @@ that repository). That repository stays as it is.
 
 ## The interface between the loader and a mod
 
-`src/api/include/moa_mod/api/ModApi.h` is a versioned C interface (`MOA_MOD_API_VERSION`). Only plain C types go
+`src/api/moa_mod/api/ModApi.h` is a versioned C interface (`MOA_MOD_API_VERSION`). Only plain C types go
 across it, because the loader and each mod have their own C runtime and their own copy of the standard library.
 
 A mod DLL exports `MoaModApiVersion`, `MoaModGetInfo`, `MoaModInit` and `MoaModShutdown`. The loader refuses a mod
