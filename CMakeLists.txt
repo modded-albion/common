@@ -85,6 +85,7 @@ moa_set_warnings(moa_mapoverride)
 add_library(
   moa_mod_core STATIC
   src/core/include/moa_mod/CrashDumpRules.h
+  src/core/include/moa_mod/Folders.h
   src/core/include/moa_mod/FrameCallbacks.h
   src/core/include/moa_mod/Hotkey.h
   src/core/include/moa_mod/MainThreadTasks.h
@@ -93,6 +94,7 @@ add_library(
   src/core/include/moa_mod/SlotSwap.h
   src/core/include/moa_mod/StartupGuard.h
   src/core/include/moa_mod/UnityMath.h
+  src/core/src/Folders.cpp
   src/core/src/FrameCallbacks.cpp
   src/core/src/Hotkey.cpp
   src/core/src/SettingsFile.cpp

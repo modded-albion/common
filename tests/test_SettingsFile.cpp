@@ -7,6 +7,7 @@
 #include <string>
 
 #include <gtest/gtest.h>
+#include <moa_mod/Folders.h>
 #include <moa_mod/SettingsFile.h>
 #include <nlohmann/json.hpp>
 
@@ -103,4 +104,14 @@ TEST(SettingsFile, TheMonitorFindsAChangeOneTime)
 	std::filesystem::remove(path);
 	EXPECT_TRUE(monitor.Changed());
 	EXPECT_FALSE(ReadFileStamp(path).exists);
+}
+
+TEST(Folders, FindsAPathInAFolderWithAnyCaseAndSeparator)
+{
+	EXPECT_TRUE(IsInsideFolder("F:/SteamLibrary/steamapps/common/Masters of Albion/runs",
+	                           "F:\\SteamLibrary\\steamapps\\common\\Masters of Albion"));
+	EXPECT_TRUE(IsInsideFolder("d:\\MASTERS_OF_ALBION_ORIGINAL", "D:/masters_of_Albion_original/"));
+	EXPECT_TRUE(IsInsideFolder("D:/masters_of_Albion_original/a/../b", "D:/masters_of_Albion_original"));
+	EXPECT_FALSE(IsInsideFolder("D:/masters_of_Albion_original2", "D:/masters_of_Albion_original"));
+	EXPECT_FALSE(IsInsideFolder("D:/masters_of_albion/runs", "D:/masters_of_Albion_original"));
 }
