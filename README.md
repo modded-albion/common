@@ -29,8 +29,20 @@ with a different interface version. If `MoaModInit` returns 0, the loader remove
 unloads it, writes the reason to the log, and the game continues.
 
 The table of the loader (`MoaHostApi`) gives the log, method callbacks (before or after a managed method), tasks on
-the main thread, the sections of `mods.json`, menu fields, actions with hotkeys, readouts, a status reader and the
-messages of the game.
+the main thread, the sections of `mods.json`, menu fields, actions with hotkeys, readouts, a status reader, the
+messages of the game and the inspector queries.
+
+### Inspector queries
+
+A mod can add named queries (for example `sky.state`) with `addQuery`: a C function that gets the parameters as JSON
+text and gives the answer as JSON text through `MoaText`. The loader calls a query on the main thread. The inspector
+mod (`inspector`) lists the queries of all mods with `listQueries` and calls one with `callQuery`, so the state of
+each mod stays in its own DLL. In C++, `ModHost::AddQuery`, `ListQueries` and `CallQuery` do this.
+
+The query functions came after the first loader of version 1, so `MOA_MOD_API_VERSION` stays 1. They are at the end
+of `MoaHostApi`, and a mod checks `size` with `MOA_HOST_API_HAS` before it uses them. `ModHost::Check` accepts a table
+of the first loader (`MOA_HOST_API_FIRST_SIZE`); `ModHost::HasQueries` then returns false and `AddQuery` refuses. An
+older mod works with a newer loader with no change.
 
 Each mod finds the IL2CPP exports itself with `moa_mod_game`. Those exports are the C interface of the game and have
 no state of the loader. The loader owns each hook: a mod asks for a callback on a managed method, and the loader
