@@ -22,8 +22,9 @@
  *   value of the game that it changed. After the call, the loader calls no function of the mod.
  *
  * Threads: `MoaModInit` runs on a thread of the loader that IL2CPP knows (attached). It must not change Unity objects.
- * All callbacks of the loader (method callbacks, tasks, settings, fields, actions, readouts) run on the main thread
- * of the game, between or in the frames. The log function of the table can be called from any thread.
+ * The first call of each settings function also runs on that thread, after all inits and before the first frame. All
+ * other callbacks of the loader (method callbacks, tasks, later settings, fields, actions, readouts) run on the main
+ * thread of the game, between or in the frames. The log function of the table can be called from any thread.
  *
  * IL2CPP: each mod finds the `il2cpp_*` exports of GameAssembly.dll itself (the library `moa_mod_game` of common).
  * These exports are the C interface of the game and have no state of the loader. The loader owns each change of a
