@@ -16,15 +16,21 @@
  *   different version, and does not call its other functions.
  * - `MoaModGetInfo` gives the id, the name and the version of the mod.
  * - `MoaModInit` gets the table of the loader. The mod registers its settings, its menu fields, its actions and its
- *   method callbacks. The loader refuses registrations after `MoaModInit` returns. A result of 0 tells that the mod cannot start: the loader then removes all the registrations of
- *   the mod, unloads the DLL, writes the reason to the log, and the game continues.
+ *   method callbacks. The loader refuses registrations after `MoaModInit` returns. A result of 0 tells that the mod cannot
+ * start: the loader then removes all the registrations of the mod, unloads the DLL, writes the reason to the log, and the game
+ * continues.
  * - `MoaModShutdown` tells the mod that the game quits or that the loader unloads the mod. The mod puts back each
  *   value of the game that it changed. After the call, the loader calls no function of the mod.
  *
  * Threads: `MoaModInit` runs on a thread of the loader that IL2CPP knows (attached). It must not change Unity objects.
  * The first call of each settings function also runs on that thread, after all inits and before the first frame. All
- * other callbacks of the loader (method callbacks, tasks, later settings, fields, actions, readouts) run on the main
- * thread of the game, between or in the frames. The log function of the table can be called from any thread.
+ * other callbacks of the loader (method callbacks, tasks, later settings, fields, actions, readouts, queries) run on
+ * the main thread of the game, between or in the frames. A mod can call `log`, `postTask` and `listQueries` of the
+ * table from any thread.
+ *
+ * The size of the table: the loader can add functions at the end of `MoaHostApi` with no change of the version. A mod
+ * checks `size` with `MOA_HOST_API_HAS` before it uses a function after `MOA_HOST_API_FIRST_SIZE`. An older loader
+ * gives a smaller table.
  *
  * IL2CPP: each mod finds the `il2cpp_*` exports of GameAssembly.dll itself (the library `moa_mod_game` of common).
  * These exports are the C interface of the game and have no state of the loader. The loader owns each change of a
@@ -153,6 +159,9 @@ typedef void (*MoaFieldGetFn)(void* user, MoaFieldState* state);
 typedef uint32_t (*MoaFieldSetFn)(void* user, const MoaFieldValue* value, uint32_t save, MoaText* message);
 typedef uint32_t (*MoaEnabledFn)(void* user);
 typedef void (*MoaReadFn)(void* user, MoaText* text);
+/// A query of the inspector. `params` is a JSON object. Return 1 and give the answer as JSON text to `result`, or
+/// return 0 and give an error message to `result`.
+typedef uint32_t (*MoaQueryFn)(void* user, const char* params, MoaText* result);
 
 /// The table that the loader gives to `MoaModInit`. It is valid until `MoaModShutdown` returns. Each function gets
 /// `context` as its first parameter. A function that registers something returns 1, or 0 if it refuses.
@@ -175,7 +184,7 @@ typedef struct MoaHostApi
 	/// the mod on one method.
 	uint32_t (*addMethodCallback)(void* context, const MoaMethodDesc* method, MoaHookPhase phase, const char* name,
 	                              MoaCallFn callback, void* user);
-	/// Run `task` one time on the main thread, between two frames.
+	/// Run `task` one time on the main thread, between two frames. Any thread can post a task.
 	uint32_t (*postTask)(void* context, MoaTaskFn task, void* user);
 
 	/// Give the JSON object `section` of mods.json to `load` now and after each change of the file. An object that is
@@ -196,7 +205,25 @@ typedef struct MoaHostApi
 
 	/// Show a short message on the screen of the game (and in the log).
 	void (*showMessage)(void* context, const char* text, double seconds);
+
+	/* The functions below are not in the first loader of version 1. Check them with MOA_HOST_API_HAS. */
+
+	/// Add a query that the inspector can call, for example "sky.state". Each query name has one owner. `help` is a
+	/// short text for the list of the queries, or null. The loader calls `query` on the main thread.
+	uint32_t (*addQuery)(void* context, const char* name, const char* help, MoaQueryFn query, void* user);
+	/// Give the queries of the loader and of all mods to `list`: a JSON array of objects with "name", "help" and "mod".
+	/// Any thread. The list is complete after the inits of all mods.
+	void (*listQueries)(void* context, MoaText* list);
+	/// Call the query `name` with the JSON object `params` (or null for no parameters). Main thread only. Return 1 and
+	/// give the answer as JSON text to `result`, or return 0 and give an error message to `result`.
+	uint32_t (*callQuery)(void* context, const char* name, const char* params, MoaText* result);
 } MoaHostApi;
+
+/// The size of the table of the first loader of version 1. Each loader of version 1 gives at least this size.
+#define MOA_HOST_API_FIRST_SIZE offsetof(MoaHostApi, addQuery)
+
+/// 1 if the table `api` (a pointer) has the function `member`, else 0.
+#define MOA_HOST_API_HAS(api, member) ((api)->size >= offsetof(MoaHostApi, member) + sizeof((api)->member) ? 1 : 0)
 
 /// What a mod tells about itself. The texts stay valid while the DLL is loaded.
 typedef struct MoaModInfo

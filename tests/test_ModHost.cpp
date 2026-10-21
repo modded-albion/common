@@ -46,6 +46,13 @@ struct FakeLoader
 	std::vector<Settings> settings;
 	std::vector<std::string> saved;
 	std::vector<FieldEntry> fields;
+	struct Query
+	{
+		std::string name;
+		MoaQueryFn query;
+		void* user;
+	};
+	std::vector<Query> queries;
 	bool refuse = false;
 
 	[[nodiscard]] MoaHostApi Api()
@@ -81,6 +88,31 @@ struct FakeLoader
 		api.addField = [](void* c, const MoaFieldDesc* field, MoaFieldGetFn get, MoaFieldSetFn set, void* user) -> uint32_t {
 			static_cast<FakeLoader*>(c)->fields.push_back({field->key, field->kind, get, set, user});
 			return 1;
+		};
+		api.addQuery = [](void* c, const char* name, const char* /*help*/, MoaQueryFn query, void* user) -> uint32_t {
+			static_cast<FakeLoader*>(c)->queries.push_back({name, query, user});
+			return 1;
+		};
+		api.listQueries = [](void* c, MoaText* list) {
+			auto names = nlohmann::json::array();
+			for (const auto& query : static_cast<FakeLoader*>(c)->queries)
+			{
+				names.push_back({{"name", query.name}});
+			}
+			const auto text = names.dump();
+			list->assign(list->context, text.data(), text.size());
+		};
+		api.callQuery = [](void* c, const char* name, const char* params, MoaText* result) -> uint32_t {
+			for (const auto& query : static_cast<FakeLoader*>(c)->queries)
+			{
+				if (query.name == name)
+				{
+					return query.query(query.user, params, result);
+				}
+			}
+			const std::string error = "the query is not known";
+			result->assign(result->context, error.data(), error.size());
+			return 0;
 		};
 		return api;
 	}
@@ -127,6 +159,57 @@ TEST(ModHost, RefusesATableOfAnotherVersion)
 	EXPECT_FALSE(sdk::ModHost::Check(&api, MOA_MOD_API_VERSION + 1));
 	api.size = 8;
 	EXPECT_FALSE(sdk::ModHost::Check(&api, MOA_MOD_API_VERSION));
+}
+
+TEST(ModHost, AcceptsTheTableOfTheFirstLoaderWithNoQueries)
+{
+	FakeLoader loader;
+	auto api = loader.Api();
+	api.size = static_cast<uint32_t>(MOA_HOST_API_FIRST_SIZE);
+	EXPECT_TRUE(sdk::ModHost::Check(&api, MOA_MOD_API_VERSION));
+	sdk::ModHost host(api, "test");
+	EXPECT_FALSE(host.HasQueries());
+	EXPECT_FALSE(host.AddQuery("test.state", "", [](const nlohmann::json& /*params*/) { return nlohmann::json(); }));
+	EXPECT_TRUE(loader.queries.empty());
+	EXPECT_FALSE(host.ListQueries());
+	EXPECT_FALSE(host.CallQuery("test.state", nlohmann::json::object()));
+}
+
+TEST(ModHost, GivesAQueryItsParametersAndItsAnswerOrError)
+{
+	FakeLoader loader;
+	sdk::ModHost host(loader.Api(), "test");
+	ASSERT_TRUE(host.HasQueries());
+	ASSERT_TRUE(host.AddQuery("test.double", "Doubles a value.", [](const nlohmann::json& params) {
+		if (!params.contains("value"))
+		{
+			throw std::runtime_error("no value");
+		}
+		return nlohmann::json {{"double", params.at("value").get<int>() * 2}};
+	}));
+	ASSERT_EQ(loader.queries.size(), 1u);
+	auto& query = loader.queries[0];
+	std::string answer;
+	MoaText text {.context = &answer, .assign = AssignTo};
+	EXPECT_EQ(query.query(query.user, R"({"value": 4})", &text), 1u);
+	EXPECT_EQ(answer, R"({"double":8})");
+	EXPECT_EQ(query.query(query.user, "{}", &text), 0u);
+	EXPECT_EQ(answer, "no value");
+	EXPECT_EQ(query.query(query.user, "[1]", &text), 0u);
+	EXPECT_EQ(query.query(query.user, nullptr, &text), 0u);
+	EXPECT_EQ(answer, "no value");
+	// An exception of a query is its error, not an error of the mod.
+	EXPECT_TRUE(loader.log.empty());
+
+	const auto list = host.ListQueries();
+	ASSERT_TRUE(list);
+	EXPECT_EQ(list->at(0).at("name"), "test.double");
+	const auto called = host.CallQuery("test.double", {{"value", 5}});
+	ASSERT_TRUE(called);
+	EXPECT_EQ(called->at("double"), 10);
+	const auto failed = host.CallQuery("test.other", nlohmann::json::object());
+	ASSERT_FALSE(failed);
+	EXPECT_EQ(failed.GetError().message, "the query is not known");
 }
 
 TEST(ModHost, GivesTheCallOfAMethodToTheFunctionAndCatchesAnException)

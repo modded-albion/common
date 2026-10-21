@@ -60,7 +60,8 @@ public:
 	ModHost(const ModHost&) = delete;
 	ModHost& operator=(const ModHost&) = delete;
 
-	/// Return an error if the table of the loader is older or smaller than the table that this mod knows.
+	/// Return an error if the loader uses another interface version, or if its table is smaller than the table of the
+	/// first loader of this version. A newer function of the table can be missing: see `HasQueries`.
 	[[nodiscard]] static moa::Result<void> Check(const MoaHostApi* api, uint32_t apiVersion);
 
 	[[nodiscard]] const MoaHostApi& Api() const { return _api; }
@@ -84,6 +85,18 @@ public:
 	[[nodiscard]] bool AddReadout(const char* menu, const char* group, std::function<std::string()> read);
 	[[nodiscard]] bool SetStatusReader(std::function<nlohmann::json()> read);
 	void ShowMessage(std::string_view text, double seconds) const;
+
+	/// The table of the loader has the functions of the inspector queries.
+	[[nodiscard]] bool HasQueries() const;
+	/// Add a query that the inspector can call. `query` gets the JSON object of the parameters and runs on the main
+	/// thread. An exception in `query` gives its message as the error of the query. Return false if the loader has no
+	/// queries or refuses the query.
+	[[nodiscard]] bool AddQuery(std::string_view name, std::string_view help,
+	                            std::function<nlohmann::json(const nlohmann::json& params)> query);
+	/// The queries of the loader and of all mods: a JSON array of objects with "name", "help" and "mod". Any thread.
+	[[nodiscard]] moa::Result<nlohmann::json> ListQueries() const;
+	/// Call a query of the loader or of a mod. Main thread only.
+	[[nodiscard]] moa::Result<nlohmann::json> CallQuery(std::string_view name, const nlohmann::json& params) const;
 
 private:
 	struct Entry;

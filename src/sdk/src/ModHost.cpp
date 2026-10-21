@@ -72,6 +72,7 @@ struct ModHost::Entry
 	std::function<bool()> enabled;
 	std::function<std::string()> read;
 	std::function<nlohmann::json()> status;
+	std::function<nlohmann::json(const nlohmann::json&)> query;
 
 	/// Run `work` and write an exception to the log. Return false after an exception.
 	template <typename Work>
@@ -113,9 +114,9 @@ moa::Result<void> ModHost::Check(const MoaHostApi* api, uint32_t apiVersion)
 		return moa::MakeError("the loader uses the interface version {}; this mod uses {}", api->apiVersion,
 		                      MOA_MOD_API_VERSION);
 	}
-	if (api->size < sizeof(MoaHostApi))
+	if (api->size < MOA_HOST_API_FIRST_SIZE)
 	{
-		return moa::MakeError("the table of the loader has {} bytes; this mod needs {}", api->size, sizeof(MoaHostApi));
+		return moa::MakeError("the table of the loader has {} bytes; this mod needs {}", api->size, MOA_HOST_API_FIRST_SIZE);
 	}
 	return {};
 }
@@ -337,6 +338,101 @@ void ModHost::ShowMessage(std::string_view text, double seconds) const
 {
 	const auto copy = std::string(text);
 	_api.showMessage(_api.context, copy.c_str(), seconds);
+}
+
+bool ModHost::HasQueries() const
+{
+	return MOA_HOST_API_HAS(&_api, addQuery) != 0 && MOA_HOST_API_HAS(&_api, listQueries) != 0 &&
+	       MOA_HOST_API_HAS(&_api, callQuery) != 0 && _api.addQuery != nullptr && _api.listQueries != nullptr &&
+	       _api.callQuery != nullptr;
+}
+
+bool ModHost::AddQuery(std::string_view name, std::string_view help,
+                       std::function<nlohmann::json(const nlohmann::json& params)> query)
+{
+	if (!HasQueries())
+	{
+		Log(MOA_LOG_WARN, std::format("the loader has no queries; the query '{}' is not available", name));
+		return false;
+	}
+	auto& entry = Keep(std::make_unique<Entry>());
+	entry.name = std::format("query {}", name);
+	entry.query = std::move(query);
+	const auto trampoline = [](void* user, const char* params, MoaText* result) -> uint32_t {
+		auto& e = *static_cast<Entry*>(user);
+		// An exception is the normal error of a query, so the error goes to the inspector and not to the log.
+		try
+		{
+			auto object = params == nullptr ? nlohmann::json::object() : nlohmann::json::parse(params, nullptr, false);
+			if (object.is_null())
+			{
+				object = nlohmann::json::object();
+			}
+			if (object.is_discarded() || !object.is_object())
+			{
+				Give(result, "the parameters are not a JSON object");
+				return 0;
+			}
+			const auto answer = e.query(object);
+			Give(result, answer.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace));
+			return 1;
+		}
+		catch (const std::exception& error)
+		{
+			Give(result, error.what());
+		}
+		catch (...)
+		{
+			Give(result, "an unknown exception in the query");
+		}
+		return 0;
+	};
+	const auto name0 = std::string(name);
+	const auto help0 = std::string(help);
+	return _api.addQuery(_api.context, name0.c_str(), help0.c_str(), trampoline, &entry) != 0;
+}
+
+moa::Result<nlohmann::json> ModHost::ListQueries() const
+{
+	if (!HasQueries())
+	{
+		return moa::MakeError("the loader has no queries");
+	}
+	std::string text;
+	MoaText target {.context = &text, .assign = [](void* context, const char* utf8, size_t size) {
+		                static_cast<std::string*>(context)->assign(utf8, size);
+	                }};
+	_api.listQueries(_api.context, &target);
+	auto list = nlohmann::json::parse(text, nullptr, false);
+	if (list.is_discarded() || !list.is_array())
+	{
+		return moa::MakeError("the list of the queries is not a JSON array");
+	}
+	return list;
+}
+
+moa::Result<nlohmann::json> ModHost::CallQuery(std::string_view name, const nlohmann::json& params) const
+{
+	if (!HasQueries())
+	{
+		return moa::MakeError("the loader has no queries");
+	}
+	std::string text;
+	MoaText target {.context = &text, .assign = [](void* context, const char* utf8, size_t size) {
+		                static_cast<std::string*>(context)->assign(utf8, size);
+	                }};
+	const auto name0 = std::string(name);
+	const auto params0 = params.dump(-1, ' ', false, nlohmann::json::error_handler_t::replace);
+	if (_api.callQuery(_api.context, name0.c_str(), params0.c_str(), &target) == 0)
+	{
+		return moa::MakeError("{}", text.empty() ? std::string("the query failed") : text);
+	}
+	auto answer = nlohmann::json::parse(text, nullptr, false);
+	if (answer.is_discarded())
+	{
+		return moa::MakeError("the answer of the query '{}' is not JSON", name);
+	}
+	return answer;
 }
 
 } // namespace moa_mod::sdk
