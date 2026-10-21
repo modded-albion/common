@@ -173,7 +173,7 @@ MethodHook::~MethodHook()
 
 moa::Result<std::unique_ptr<MethodHook>> MethodHook::Install(const Il2CppApi& api, const char* space, const char* className,
                                                              const char* methodName,
-                                                             std::initializer_list<std::string_view> parameterTypes)
+                                                             const std::vector<std::string>& parameterTypes)
 {
 	const auto name = std::format("{}.{}.{}", space, className, methodName);
 	if (parameterTypes.size() != 0 && parameterTypes.size() != 2)
@@ -186,7 +186,7 @@ moa::Result<std::unique_ptr<MethodHook>> MethodHook::Install(const Il2CppApi& ap
 		return method.GetError();
 	}
 	uint32_t index = 0;
-	for (const auto expected : parameterTypes)
+	for (const auto& expected : parameterTypes)
 	{
 		if (const auto type = api.TypeName(api.il2cpp_method_get_param(*method, index)); type != expected)
 		{

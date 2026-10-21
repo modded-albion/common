@@ -6,10 +6,10 @@
 
 #include <cstddef>
 
-#include <initializer_list>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <moa/common/Result.h>
 #include <moa_mod/FrameCallbacks.h>
@@ -45,9 +45,9 @@ public:
 	/// Install the hook on `space.className.methodName`. `parameterTypes` are the C# full names of the parameters:
 	/// none, or two types that each fit in one register. Return an error, and change nothing, if the method does not
 	/// exist, has other parameters, shares its code with another method, or if all hook places are in use.
-	[[nodiscard]] static moa::Result<std::unique_ptr<MethodHook>>
-	Install(const Il2CppApi& api, const char* space, const char* className, const char* methodName,
-	        std::initializer_list<std::string_view> parameterTypes = {});
+	[[nodiscard]] static moa::Result<std::unique_ptr<MethodHook>> Install(const Il2CppApi& api, const char* space,
+	                                                                      const char* className, const char* methodName,
+	                                                                      const std::vector<std::string>& parameterTypes = {});
 
 	/// The functions that run before the original method, on the main thread.
 	[[nodiscard]] FrameCallbacks& Before();
