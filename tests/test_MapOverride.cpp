@@ -8,8 +8,8 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <moa/mapoverride/MapOverride.h>
-#include <moa/mapoverride/Sha1.h>
+#include <mapoverride/MapOverride.h>
+#include <mapoverride/Sha1.h>
 
 namespace
 {

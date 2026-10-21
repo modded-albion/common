@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 
-#include "moa/astro/Moon.h"
+#include "astro/Moon.h"
 
 using namespace moa::astro;
 using namespace std::chrono;

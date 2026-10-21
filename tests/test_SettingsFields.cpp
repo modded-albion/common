@@ -7,7 +7,7 @@
 #include <string_view>
 
 #include <gtest/gtest.h>
-#include <moa_mod/SettingsFields.h>
+#include <mod_core/SettingsFields.h>
 
 using namespace moa_mod::settings;
 

@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <moa_mod/Hotkey.h>
+#include <mod_core/Hotkey.h>
 
 using namespace moa_mod;
 

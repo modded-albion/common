@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <moa_mod/sdk/ModHost.h>
+#include <mod_sdk/ModHost.h>
 
 using namespace moa_mod;
 

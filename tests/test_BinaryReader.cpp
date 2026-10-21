@@ -6,8 +6,8 @@
 
 #include <array>
 
+#include <common/BinaryReader.h>
 #include <gtest/gtest.h>
-#include <moa/common/BinaryReader.h>
 
 namespace
 {

@@ -7,8 +7,8 @@
 #include <string>
 
 #include <gtest/gtest.h>
-#include <moa_mod/Folders.h>
-#include <moa_mod/SettingsFile.h>
+#include <mod_core/Folders.h>
+#include <mod_core/SettingsFile.h>
 #include <nlohmann/json.hpp>
 
 using namespace moa_mod;

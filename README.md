@@ -14,14 +14,21 @@ that repository). That repository stays as it is.
 | `moa_astro` | `src/astro` | The moon, the sun and the star table |
 | `moa_modzip` | `src/modzip` | The mod zips: a zip reader and writer in memory (miniz) and `mod.json` |
 | `moa_mapoverride` | `src/mapoverride` | The map overrides of the editor and their checks |
-| `moa_mod_core` | `src/core` | Pure logic: frame callbacks, main-thread tasks, the slot swap of a code pointer, hotkeys, the settings file, the menu field tables, the start-up guard, the crash dump rules and the Unity maths |
-| `moa_mod_api` | `src/api` | `moa_mod/api/ModApi.h`: the C interface between the loader and a mod DLL |
-| `moa_mod_sdk` | `src/sdk` | The C++ side of that interface in a mod DLL (`ModHost`, `BindFields`, the log sink) |
-| `moa_mod_game` | `src/game` | Windows only. The parts that run in the game: IL2CPP, managed objects, method hooks, the hotkey input, the messages of the game, crash dumps and the mod status |
+| `moa_mod_core` | `src/mod_core` | Pure logic: frame callbacks, main-thread tasks, the slot swap of a code pointer, hotkeys, the settings file, the menu field tables, the start-up guard, the crash dump rules and the Unity maths |
+| `moa_mod_api` | `src/mod_api` | `mod_api/ModApi.h`: the C interface between the loader and a mod DLL |
+| `moa_mod_sdk` | `src/mod_sdk` | The C++ side of that interface in a mod DLL (`ModHost`, `BindFields`, the log sink) |
+| `moa_mod_game` | `src/mod_game` | Windows only. The parts that run in the game: IL2CPP, managed objects, method hooks, the hotkey input, the messages of the game, crash dumps and the mod status |
+
+Each library has one folder under `src`, with its headers and sources directly in it. The folder name is the
+target name without `moa_`. Each library puts `src` on the include path, so an include line names the library folder
+and the file, for example `#include <common/Result.h>`, `#include <modzip/ModInfo.h>` or
+`#include <mod_core/Hotkey.h>`. The folder names of common start with `mod_` where a mod could have the same name
+(`core`, `game`), so an include path never finds two files. The C++ namespaces (`moa`, `moa::astro`, `moa_mod`, ...)
+do not follow the folders.
 
 ## The interface between the loader and a mod
 
-`src/api/moa_mod/api/ModApi.h` is a versioned C interface (`MOA_MOD_API_VERSION`). Only plain C types go
+`src/mod_api/ModApi.h` is a versioned C interface (`MOA_MOD_API_VERSION`). Only plain C types go
 across it, because the loader and each mod have their own C runtime and their own copy of the standard library.
 
 A mod DLL exports `MoaModApiVersion`, `MoaModGetInfo`, `MoaModInit` and `MoaModShutdown`. The loader refuses a mod

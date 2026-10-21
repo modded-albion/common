@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <moa_mod/StartupGuard.h>
+#include <mod_core/StartupGuard.h>
 
 using namespace moa_mod;
 

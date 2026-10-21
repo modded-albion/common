@@ -11,8 +11,8 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <moa/modzip/ModInfo.h>
-#include <moa/modzip/Zip.h>
+#include <modzip/ModInfo.h>
+#include <modzip/Zip.h>
 
 namespace
 {

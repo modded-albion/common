@@ -3,7 +3,7 @@
  *****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <moa_mod/CrashDumpRules.h>
+#include <mod_core/CrashDumpRules.h>
 
 using namespace moa_mod;
 

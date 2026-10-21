@@ -15,9 +15,9 @@
 
 #include <gtest/gtest.h>
 
-#include "moa/astro/Moon.h"
-#include "moa/astro/Sky.h"
-#include "moa/astro/StarTable.h"
+#include "astro/Moon.h"
+#include "astro/Sky.h"
+#include "astro/StarTable.h"
 
 using namespace moa::astro;
 

@@ -10,10 +10,10 @@
 #include <thread>
 
 #include <gtest/gtest.h>
-#include <moa_mod/FrameCallbacks.h>
-#include <moa_mod/MainThreadTasks.h>
-#include <moa_mod/SlotSwap.h>
-#include <moa_mod/UnityMath.h>
+#include <mod_core/FrameCallbacks.h>
+#include <mod_core/MainThreadTasks.h>
+#include <mod_core/SlotSwap.h>
+#include <mod_core/UnityMath.h>
 #include <nlohmann/json.hpp>
 
 using namespace moa_mod;
