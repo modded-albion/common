@@ -1,4 +1,4 @@
-# Masters of Albion mods: common
+# Masters of Albion: common
 
 The shared code of the mod loader and the mods of Masters of Albion.
 
